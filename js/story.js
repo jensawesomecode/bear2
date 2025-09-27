@@ -11,9 +11,9 @@
   // <<< EDIT THESE LINES >>>
   const LINES = [
     "i am so cold and lost",
-    "i knew i never should have tried to outrun this snowstorm.",
+    "i never should have raced this snowstorm.",
     "this is too much.",
-    "maybe if i lay in the snow and rest..."
+    "maybe if i lay down in the snow and rest..."
   ];
   // ^ Replace with your actual story text. Keep exactly 4 items as requested.
 

@@ -11,11 +11,7 @@
 
   <!-- Your per-object CSS -->
   <link rel="stylesheet" href="css/fire.css" />
-  <link rel="stylesheet" href="css/rug.css" />
-  <link rel="stylesheet" href="css/chair.css" />
-  <link rel="stylesheet" href="css/couch.css" />
-  <link rel="stylesheet" href="css/desk.css" />
-  <link rel="stylesheet" href="css/honeycomb.css" />
+
 </head>
 <body>
   <!-- Game canvas -->
@@ -24,22 +20,14 @@
     <div id="ui" aria-live="polite"></div>
   </div>
 
-  <!-- Title overlay (two-step: step-1 shows first line, step-2 shows second line) -->
-  <div id="title-screen" class="two-step step-1" role="dialog" aria-label="Opening">
-    <div class="title-inner">
-      <div class="title-text title-copy">Jen’s Awesome Games<br/>presents</div>
-      <div class="title-cta title-copy">Escape the Cabin<br/>It's getting hot in here...</div>
-    </div>
-  </div>
+  <div id="title-screen" role="dialog" aria-label="Opening">
+  <div class="title-inner"></div>
+</div>
+
 
   <!-- Object scripts -->
   <script src="js/fire.js"></script>
-  <script src="js/rug.js"></script>
-  <script src="js/chair.js"></script>
-  <script src="js/couch.js"></script>
-  <script src="js/desk.js"></script>
-  <script src="js/honeycomb.js"></script>
-
+ 
   <!-- Logic: Title (defines window.Title), Story (auto-runs first), then Game -->
     <script src="js/game.js"></script>
   <script src="js/puzzle.js"></script>
