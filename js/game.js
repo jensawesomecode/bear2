@@ -79,12 +79,14 @@ function draw() {
   requestAnimationFrame(draw);
 }
 
-// Tight outline + soft halo
-function drawObjectWithGlow(img, x, y, w, h, glowColor) {
+// Tight outline + soft halo in bear brown (#5C4033)
+function drawObjectWithGlow(img, x, y, w, h) {
+  const glowColor = '#5C4033'; // bear brown
+
   // 1px edge
   ctx.save();
   ctx.shadowColor = glowColor;
-  ctx.shadowBlur = 1;
+  ctx.shadowBlur = 4;
   ctx.shadowOffsetX = 0;
   ctx.shadowOffsetY = 0;
   ctx.globalAlpha = 1;
@@ -94,7 +96,7 @@ function drawObjectWithGlow(img, x, y, w, h, glowColor) {
   // 2px halo
   ctx.save();
   ctx.shadowColor = glowColor;
-  ctx.shadowBlur = 2;
+  ctx.shadowBlur = 9;
   ctx.shadowOffsetX = 0;
   ctx.shadowOffsetY = 0;
   ctx.globalAlpha = 0.85;
@@ -104,6 +106,7 @@ function drawObjectWithGlow(img, x, y, w, h, glowColor) {
   // sprite
   ctx.drawImage(img, x, y, w, h);
 }
+
 
 // ===== input / hit test =====
 function onPointerMove(e) {

@@ -1,43 +1,36 @@
 // ===== puzzle.js =====
-// Text puzzles in a cream overlay (black text).
-// P1 (chair): 7 mini-expressions → map numbers to letters (A1Z26) → form the word.
-// No spoilers shown in the UI.
+// Text puzzles in an overlay card.
+// P1 (Chair): 7 mini-expressions → map numbers to letters (A1Z26) → form the word.
 
 (function () {
-  // ---------- shared state for the final rug code ----------
+  // ---------- shared state ----------
   window.GameState = window.GameState || { answers: {}, sums: {} };
 
-  // ---------- load fonts (primary + UCAS fallback) ----------
+  // ---------- font injection ----------
   (function injectFont() {
     const style = document.createElement('style');
     style.textContent = `
-      /* Primary display font (Blumenbuch) */
-      @font-face {
-        font-family: 'Blumenbuch';
-        src: url('fonts/BlumenbuchBeta-OO7P.ttf') format('truetype');
-        font-display: swap;
-      }
-
-      /* Fallback for Cree Syllabics (UCAS + UCAS Extended) */
+      /* Fallback for Cree Syllabics */
       @font-face {
         font-family: 'NotoSansUCAS';
         src: url('fonts/NotoSansCanadianAboriginal-VariableFont_wght.ttf') format('truetype');
         font-display: swap;
-        font-style: normal;
-        font-weight: 100 900; /* variable font axis range */
-        unicode-range: U+1400-167F, U+18B0-18FF; /* UCAS + UCAS Extended */
+        unicode-range: U+1400-167F, U+18B0-18FF;
       }
 
-      /* Apply the chain inside the puzzle overlay */
       #puzzle-overlay {
-        font-family: 'Blumenbuch', 'NotoSansUCAS',
-                     system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        font-family: 'NotoSansUCAS', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        font-weight: 500; /* medium weight everywhere */
+      }
+
+      #puzzle-overlay pre {
+        font-weight: 500; /* ensure math lines look consistent */
       }
     `;
     document.head.appendChild(style);
   })();
 
-  // ---------- overlay UI ----------
+  // CHATGPT DO NOT EVER CHANGE THIS SECTION---------- overlay ----------
   const overlay = document.createElement('div');
   overlay.id = 'puzzle-overlay';
   Object.assign(overlay.style, {
@@ -45,103 +38,27 @@
     inset: '0',
     zIndex: '2000',
     display: 'none',
-    background: '#F5E6C8', // cream
-    color: '#000',          // black
-    fontFamily: "Blumenbuch, NotoSansUCAS, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
-    padding: 'clamp(16px, 4vw, 48px)',
+    background: "rgba(0,0,0,0.4)", // dim full screen
+    color: '#000',
     boxSizing: 'border-box',
+    placeItems: 'center'
   });
 
-  const wrap = document.createElement('div');
-  Object.assign(wrap.style, {
-    maxWidth: 'min(900px, 92vw)',
-    margin: '0 auto',
+  // inner card using title.png
+  const card = document.createElement('div');
+  Object.assign(card.style, {
+    background: "url('img/title.png') center / cover no-repeat",
+    borderRadius: '20px',
+    padding: 'clamp(20px, 4vw, 40px)',
+    maxWidth: 'min(800px, 90vw)',
+    minHeight: 'min(500px, 80vh)',
     display: 'grid',
     gap: '16px',
-    alignContent: 'center',
-    minHeight: '100%',
     textAlign: 'center',
+    position: 'relative',
+    boxShadow: '0 12px 32px rgba(0,0,0,.4)'
   });
-
-  const title = document.createElement('h2');
-  title.id = 'puzzle-title';
-  Object.assign(title.style, {
-    margin: '0 0 4px',
-    fontSize: 'clamp(22px, 3.4vw, 38px)',
-    letterSpacing: '.02em',
-  });
-
-  const prompt = document.createElement('div');
-  prompt.id = 'puzzle-prompt';
-  Object.assign(prompt.style, {
-    fontSize: 'clamp(16px, 2.4vw, 22px)',
-    lineHeight: '1.35',
-    whiteSpace: 'pre-wrap',
-  });
-
-  const image = document.createElement('img');
-  image.id = 'puzzle-image';
-  Object.assign(image.style, {
-    display: 'none',
-    margin: '8px auto 0',
-    width: '200px',
-    height: '200px',
-    objectFit: 'contain',
-    imageRendering: 'crisp-edges',
-  });
-
-  const hint = document.createElement('div');
-  hint.id = 'puzzle-hint';
-  Object.assign(hint.style, {
-    fontSize: 'clamp(14px, 2vw, 18px)',
-    opacity: '.8',
-    marginTop: '4px',
-  });
-
-  const inputRow = document.createElement('div');
-  Object.assign(inputRow.style, {
-    display: 'grid',
-    gridTemplateColumns: '1fr auto',
-    gap: '10px',
-    marginTop: '12px',
-    alignItems: 'center',
-  });
-
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.inputMode = 'text';
-  input.autocomplete = 'off';
-  input.spellcheck = false;
-  input.placeholder = 'Type your answer…';
-  Object.assign(input.style, {
-    fontSize: 'clamp(16px, 2.2vw, 20px)',
-    padding: '10px 12px',
-    border: '1px solid rgba(0,0,0,.25)',
-    borderRadius: '8px',
-    outline: 'none',
-    fontFamily: "Blumenbuch, NotoSansUCAS, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
-  });
-
-  const submit = document.createElement('button');
-  submit.textContent = 'Submit';
-  Object.assign(submit.style, {
-    fontSize: 'clamp(16px, 2.2vw, 20px)',
-    padding: '10px 16px',
-    borderRadius: '8px',
-    border: '1px solid rgba(0,0,0,.25)',
-    background: '#000',
-    color: '#F5E6C8',
-    cursor: 'pointer',
-    fontFamily: "Blumenbuch, NotoSansUCAS, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
-  });
-
-  const feedback = document.createElement('div');
-  Object.assign(feedback.style, {
-    minHeight: '1.2em',
-    fontSize: 'clamp(14px, 2vw, 18px)',
-    color: '#000',
-    marginTop: '4px',
-  });
+  overlay.appendChild(card);
 
   const closeBtn = document.createElement('button');
   closeBtn.textContent = '×';
@@ -158,18 +75,105 @@
     fontSize: '20px',
     lineHeight: '34px',
     cursor: 'pointer',
+    fontWeight: '500'
+  });
+  card.appendChild(closeBtn);
+
+  const title = document.createElement('h2');
+  title.id = 'puzzle-title';
+  Object.assign(title.style, {
+    margin: '0 0 4px',
+    fontSize: 'clamp(22px, 3.4vw, 36px)',
+    fontWeight: '500'
+  });
+
+  const prompt = document.createElement('div');
+  prompt.id = 'puzzle-prompt';
+  Object.assign(prompt.style, {
+    fontSize: 'clamp(16px, 3vw, 22px)',
+    lineHeight: '1.35',
+    whiteSpace: 'pre-wrap',
+    fontWeight: '500'
+  });
+
+  const image = document.createElement('img');
+  image.id = 'puzzle-image';
+  Object.assign(image.style, {
+    display: 'none',
+    margin: '8px auto 0',
+    width: '200px',
+    height: '200px',
+    objectFit: 'contain',
+    imageRendering: 'crisp-edges'
+  });
+
+  const hint = document.createElement('div');
+  hint.id = 'puzzle-hint';
+  Object.assign(hint.style, {
+    fontSize: 'clamp(14px, 3vw, 18px)',
+    opacity: '.85',
+    marginTop: '4px',
+    fontWeight: '500'
+  });
+
+  const inputRow = document.createElement('div');
+  Object.assign(inputRow.style, {
+    display: 'grid',
+    gridTemplateColumns: '1fr auto',
+    gap: '10px',
+    marginTop: '12px',
+    alignItems: 'center'
+  });
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.inputMode = 'text';
+  input.autocomplete = 'off';
+  input.spellcheck = false;
+  input.placeholder = 'Type your answer';
+  Object.assign(input.style, {
+    fontSize: 'clamp(16px, 3vw, 20px)',
+    padding: '10px 12px',
+    border: '1px solid rgba(0,0,0,.25)',
+    borderRadius: '8px',
+    outline: 'none',
+    fontFamily: "'NotoSansUCAS', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
+    fontWeight: '500'
+  });
+
+  const submit = document.createElement('button');
+  submit.textContent = 'Submit';
+  Object.assign(submit.style, {
+    fontSize: 'clamp(16px, 3vw, 20px)',
+    padding: '10px 16px',
+    borderRadius: '8px',
+    border: '1px solid rgba(0,0,0,.25)',
+    background: '#000',
+    color: '#F5E6C8',
+    cursor: 'pointer',
+    fontFamily: "'NotoSansUCAS', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
+    fontWeight: '500'
+  });
+
+  const feedback = document.createElement('div');
+  Object.assign(feedback.style, {
+    minHeight: '1.2em',
+    fontSize: 'clamp(14px, 3vw, 18px)',
+    color: '#000',
+    marginTop: '4px',
+    fontWeight: '500'
   });
 
   inputRow.appendChild(input);
   inputRow.appendChild(submit);
-  wrap.appendChild(title);
-  wrap.appendChild(prompt);
-  wrap.appendChild(image);
-  wrap.appendChild(hint);
-  wrap.appendChild(inputRow);
-  wrap.appendChild(feedback);
-  overlay.appendChild(closeBtn);
-  overlay.appendChild(wrap);
+
+  card.appendChild(title);
+  card.appendChild(prompt);
+  card.appendChild(image);
+  card.appendChild(hint);
+  card.appendChild(inputRow);
+  card.appendChild(feedback);
+
   document.body.appendChild(overlay);
 
   // ---------- helpers ----------
@@ -179,7 +183,7 @@
     let sum = 0;
     for (const ch of norm(str)) {
       const code = ch.charCodeAt(0);
-      if (code >= 65 && code <= 90) sum += (code - 64); // A=1..Z=26
+      if (code >= 65 && code <= 90) sum += (code - 64);
     }
     return sum;
   }
@@ -204,7 +208,7 @@
       image.removeAttribute('src');
     }
 
-    overlay.style.display = 'block';
+    overlay.style.display = 'grid';
     input.focus();
 
     function submitHandler() {
@@ -246,9 +250,7 @@
     closeBtn.onclick = closeOverlay;
   }
 
-  // ---------- CHAIR: Math → word via A1Z26 ----------
-  // Solve each expression (1–7). Convert each result to a letter: A=1…Z=26.
-  // Read the letters left→right to get the word.
+  // ---------- puzzles ----------
   function openChair() {
     const lines = [
       '1) 16 − 3 =  ?',      // 13 → M
@@ -261,17 +263,16 @@
     ].join('\n');
 
     openOverlay({
-      titleText: 'chair uzzle',
+      titleText: 'Chair Puzzle',
       promptHTML:
-        `solve each, then convert numbers to letters (A=1 … Z=26).<br><br>` +
-        `<pre style="text-align:left; display:inline-block">${lines}</pre>`,
-      hintHTML: `Example: 1 → A, 2 → B, … 26 → Z`,
+        `Solve each, then convert numbers to letters (A=1 … Z=26).<br><br>` +
+        `<pre style="text-align:left; display:inline-block; font-weight:500">${lines}</pre>`,
+      hintHTML: `Cree spelling: <span class="ucas">ᒥᐢᑕᐦᐃ</span><br>Example: 1 → A, 2 → B, … 26 → Z`,
       correct: 'MISTAHI',
       onSolved: () => { try { window.UI?.say?.('Chair solved'); } catch {} }
     });
   }
 
-  // ---------- PLANT: placeholder (no spoilers yet) ----------
   function openPlant() {
     openOverlay({
       titleText: 'Plant Puzzle',
@@ -282,7 +283,6 @@
     });
   }
 
-  // ---------- DESK: Honeycomb (placeholder image) ----------
   function openDesk() {
     openOverlay({
       titleText: 'Desk Puzzle (Honeycomb)',
@@ -294,7 +294,6 @@
     });
   }
 
-  // ---------- RUG: Final code from sums ----------
   function openRug() {
     const m = window.GameState.sums['MISTAHI'] ?? '?';
     const k = window.GameState.sums['MASKWA'] ?? '?';
@@ -318,10 +317,10 @@
     });
   }
 
-  // ---------- expose openers (override stubs from game.js) ----------
+  // ---------- expose ----------
   window.Puzzles = window.Puzzles || {};
-  window.Puzzles.chair2 = openChair;   // chair → math-to-word
-  window.Puzzles.plant2 = openPlant;   // plant → code (next)
-  window.Puzzles.desk2  = openDesk;    // desk  → honeycomb (next)
-  window.Puzzles.rug2   = openRug;     // rug   → final code
+  window.Puzzles.chair2 = openChair;
+  window.Puzzles.plant2 = openPlant;
+  window.Puzzles.desk2  = openDesk;
+  window.Puzzles.rug2   = openRug;
 })();
