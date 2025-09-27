@@ -5,17 +5,17 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Escape Room</title>
 
-  <!-- Title screen styles first -->
+  <!-- Title / Story styles -->
   <link rel="stylesheet" href="css/title.css" />
-  <link rel="stylesheet" href="css/story.css">
+  <link rel="stylesheet" href="css/story.css" />
 
-  <!-- Your per-object CSS if any -->
-  <link rel="stylesheet" href="css/fire.css">
-  <link rel="stylesheet" href="css/rug.css">
-  <link rel="stylesheet" href="css/chair.css">
-  <link rel="stylesheet" href="css/couch.css">
-  <link rel="stylesheet" href="css/desk.css">
-  <link rel="stylesheet" href="css/honeycomb.css">
+  <!-- Your per-object CSS -->
+  <link rel="stylesheet" href="css/fire.css" />
+  <link rel="stylesheet" href="css/rug.css" />
+  <link rel="stylesheet" href="css/chair.css" />
+  <link rel="stylesheet" href="css/couch.css" />
+  <link rel="stylesheet" href="css/desk.css" />
+  <link rel="stylesheet" href="css/honeycomb.css" />
 </head>
 <body>
   <!-- Game canvas -->
@@ -24,14 +24,13 @@
     <div id="ui" aria-live="polite"></div>
   </div>
 
-  <!-- Title overlay -->
-  <div id="title-screen" role="dialog" aria-label="Opening">
-  <div class="title-inner">
-    <div class="title-text title-copy">Jen’s Awesome Games<br/>presents</div>
-    <div class="title-cta  title-copy" aria-hidden="true">Click or press any key…</div>
+  <!-- Title overlay (two-step: step-1 shows first line, step-2 shows second line) -->
+  <div id="title-screen" class="two-step step-1" role="dialog" aria-label="Opening">
+    <div class="title-inner">
+      <div class="title-text title-copy">Jen’s Awesome Games<br/>presents</div>
+      <div class="title-cta title-copy">Escape the Cabin<br/>It's getting hot in here...</div>
+    </div>
   </div>
-</div>
-
 
   <!-- Object scripts -->
   <script src="js/fire.js"></script>
@@ -41,7 +40,7 @@
   <script src="js/desk.js"></script>
   <script src="js/honeycomb.js"></script>
 
-  <!-- Title logic then game -->
+  <!-- Logic: Title (defines window.Title), Story (auto-runs first), then Game -->
   <script src="js/title.js"></script>
   <script src="js/story.js"></script>
   <script src="js/game.js"></script>
