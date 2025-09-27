@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Escape Room</title>
+
+  <!-- Title screen styles first -->
+  <link rel="stylesheet" href="css/title.css" />
+  <link rel="stylesheet" href="css/story.css">
+
+  <!-- Your per-object CSS if any -->
+  <link rel="stylesheet" href="css/fire.css">
+  <link rel="stylesheet" href="css/rug.css">
+  <link rel="stylesheet" href="css/chair.css">
+  <link rel="stylesheet" href="css/couch.css">
+  <link rel="stylesheet" href="css/desk.css">
+  <link rel="stylesheet" href="css/honeycomb.css">
+</head>
+<body>
+  <!-- Game canvas -->
+  <div id="root">
+    <canvas id="scene" width="1280" height="720" aria-label="Room"></canvas>
+    <div id="ui" aria-live="polite"></div>
+  </div>
+
+  <!-- Title overlay -->
+  <div id="title-screen" role="dialog" aria-label="Opening">
+  <div class="title-inner">
+    <div class="title-text title-copy">Jen’s Awesome Games<br/>presents</div>
+    <div class="title-cta  title-copy" aria-hidden="true">Click or press any key…</div>
+  </div>
+</div>
+
+
+  <!-- Object scripts -->
+  <script src="js/fire.js"></script>
+  <script src="js/rug.js"></script>
+  <script src="js/chair.js"></script>
+  <script src="js/couch.js"></script>
+  <script src="js/desk.js"></script>
+  <script src="js/honeycomb.js"></script>
+
+  <!-- Title logic then game -->
+  <script src="js/title.js"></script>
+  <script src="js/story.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>

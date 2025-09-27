@@ -1,0 +1,63 @@
+/* ===== story.css ===== */
+
+/* Load your story font */
+@font-face {
+  font-family: 'Blumenbuch';
+  src: url('../fonts/BlumenbuchBeta-OO7P.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Fullscreen black overlay above everything (higher than title) */
+#story-screen {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  display: grid;
+  place-items: center;
+  z-index: 1500; /* above title-screen (1000) */
+}
+
+/* 16:9 safe area that scales like your canvas */
+#story-screen .story-inner {
+  width: min(1280px, 95vw);
+  aspect-ratio: 16 / 9;
+  display: grid;
+  place-items: center;
+  padding: 4vw;
+  text-align: center;
+}
+
+/* Story line styling (cream on black) */
+#story-screen .story-line {
+  font-family: 'Blumenbuch', system-ui, sans-serif;
+  color: #F5E6C8;               /* cream */
+  letter-spacing: 0.03em;
+  line-height: 1.25;
+  margin: 0 auto;
+  width: 90%;
+  /* responsive size; tweak middle value to taste */
+  font-size: clamp(22px, 3.2vw, 48px);
+
+  opacity: 0;                   /* driven by animations below */
+  transform: translateY(6px);
+}
+
+/* Appear/disappear animations */
+@keyframes storyIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes storyOut {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-6px); }
+}
+
+/* Utility classes toggled by JS */
+.story-enter {
+  animation: storyIn 600ms ease-out forwards;
+}
+.story-exit {
+  animation: storyOut 500ms ease-in forwards;
+}
