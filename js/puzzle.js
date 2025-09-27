@@ -323,23 +323,14 @@
 
 
 function openRug() {
-  // ---- gate & logs ----
   const solvedMap = (window.GameState && window.GameState.solved) || {};
   const ready = ['chair2', 'plant2', 'desk2'].every(id => solvedMap[id]);
-  console.log('[RUG] openRug() called. ready=', ready, 'solvedMap=', JSON.stringify(solvedMap));
+  console.log('[RUG] openRug() called. ready=', ready, 'solvedMap=', solvedMap);
 
-  // Hard guard if you want: toast & bail when not ready
-  // (Comment out this block if you want instructions visible before ready.)
-  // if (!ready) {
-  //   console.warn('[RUG] Not ready -> blocking overlay open.');
-  //   window.UI?.say?.('Solve chair, plant, and desk first.');
-  //   return;
-  // }
-
-  // ---- helpers ----
+  // Helper: digit-sum letters then cycle + × −
   function codeFromWord(word) {
     const sums = [...word.toUpperCase()].map(ch => {
-      const n = ch.charCodeAt(0) - 64;
+      const n = ch.charCodeAt(0) - 64; // A=1..Z=26
       return String(n).split('').reduce((a, d) => a + Number(d), 0);
     });
     const ops = ['+', '*', '-'];
@@ -350,19 +341,19 @@ function openRug() {
       else if (op === '*') out *= sums[i];
       else out -= sums[i];
     }
-    console.debug('[RUG] codeFromWord', word, '-> sums=', sums, 'result=', out);
+    console.debug('[RUG] codeFromWord', word, '→', sums, '=', out);
     return out;
   }
 
-  // Targets (hidden from UI)
+  // Hidden targets
   const mVal = codeFromWord('MISTAHI');
   const kVal = codeFromWord('MASKWA');
   const bVal = codeFromWord('BEAR');
   const targetDash = `${mVal}-${kVal}-${bVal}`;
   const targetRaw  = `${mVal}${kVal}${bVal}`;
-  console.log('[RUG] targets computed:', { mVal, kVal, bVal, targetDash, targetRaw });
+  console.log('[RUG] targets', { mVal, kVal, bVal, targetDash, targetRaw });
 
-  // ---- pages (≤9 lines) ----
+  // Pages
   const page1 = `
 ᒪᐢᑿ maskwa (Bear) once kept the pass-phrase in clear words.
 But ᐑᓵᐦᑫᒑᕽ Wîsahkêcâhk, the trickster, laughed and changed the rules:
@@ -383,7 +374,8 @@ the words and the number-trail can complete the circle.`;
 3) Keep the order of the letters. Don’t skip, don’t shuffle.`;
 
   const page3 = `
-<b>Example: SALMON</b>
+<b>Example: SALMON</b> (ᐋᐧᐢᑲᐧᐦᑯᐢ)
+
 S=19 → 1+9=10
 A=1  → 1
 L=12 → 1+2=3
@@ -393,6 +385,7 @@ N=14 → 1+4=5
 
 Now follow the circle: +, ×, −, +, ×
 10+1=11 → 11×3=33 → 33−4=29 → 29+6=35 → 35×5=<b>175</b>`;
+
 
   const page4 = `
 <b>Your turn to complete the circle</b>
@@ -405,91 +398,108 @@ Dashes optional (e.g., <code>AA-BB-CC</code> or <code>AABBCC</code>).
 ${ready ? 'When your circle is complete, the rug will yield.' : '<i>Finish Chair, Plant, and Desk to complete the circle.</i>'}
 `;
 
-  // Build overlay via the shared builder (title/prompt/image/hint/input/submit exist now):contentReference[oaicite:0]{index=0}
+  // Build overlay
   openOverlay({
     titleText: 'Rug Puzzle — ᒪᐢᑿ’s Circle',
     promptHTML: page1,
     hintHTML: `Inside: add digits of each letter’s A1Z26 value. Outside: cycle +, ×, − in order.`,
     correct: [targetDash.toUpperCase(), targetRaw.toUpperCase()],
     onSolved: () => {
-      console.log('[RUG] onSolved() firing, marking rug2 solved.');
+      console.log('[RUG] onSolved() fired.');
       window.GameState.solved['rug2'] = true;
       try { window.UI?.say?.('Rug unlocked'); } catch {}
     }
   });
 
-  // ---- robust node targets inside the card ----
-  const overlayEl = document.getElementById('puzzle-overlay');                 // wrapper:contentReference[oaicite:1]{index=1}
-  const cardEl    = overlayEl?.firstElementChild;                               // inner card div
-  const promptEl  = document.getElementById('puzzle-prompt');                   // prompt area:contentReference[oaicite:2]{index=2}
-  const imageEl   = document.getElementById('puzzle-image');                    // image (hide for rug):contentReference[oaicite:3]{index=3}
-  const inputEl   = overlayEl.querySelector('#puzzle-overlay input');           // input field:contentReference[oaicite:4]{index=4}
-  const inputRowEl= inputEl?.parentElement;                                     // grid row (input+submit):contentReference[oaicite:5]{index=5}
-  const feedbackEl= cardEl?.lastElementChild;                                   // feedback is last child in card:contentReference[oaicite:6]{index=6}
-
-  // Submit button is inside inputRowEl; closeBtn is the absolute one on the card.
+  // Grab nodes
+  const overlayEl = document.getElementById('puzzle-overlay');
+  const cardEl    = overlayEl?.firstElementChild;
+  const promptEl  = document.getElementById('puzzle-prompt');
+  const imageEl   = document.getElementById('puzzle-image');
+  const inputEl   = overlayEl.querySelector('#puzzle-overlay input');
+  const inputRowEl= inputEl?.parentElement;
+  const feedbackEl= cardEl?.lastElementChild;
   const submitBtn = inputRowEl ? inputRowEl.querySelector('button') : null;
 
-  console.log('[RUG] nodes:', {
-    overlayEl: !!overlayEl, cardEl: !!cardEl, promptEl: !!promptEl,
-    imageEl: !!imageEl, inputEl: !!inputEl, inputRowEl: !!inputRowEl,
-    feedbackEl: !!feedbackEl, submitBtn: !!submitBtn
-  });
+  console.log('[RUG] nodes', { overlayEl, cardEl, promptEl, imageEl, inputEl, inputRowEl, feedbackEl, submitBtn });
 
   if (!overlayEl || !cardEl || !promptEl || !inputRowEl || !submitBtn || !feedbackEl) {
-    console.error('[RUG] Missing required overlay nodes — aborting pagination.');
+    console.error('[RUG] Missing overlay nodes');
     return;
   }
 
-  // Ensure no image on Rug
+  // Hide Rug image
   if (imageEl) { imageEl.style.display = 'none'; imageEl.removeAttribute('src'); }
 
-  // Clone a "Next" button styled exactly like Submit
+  // Next button
   const nextBtn = submitBtn.cloneNode(true);
   nextBtn.id = 'puzzle-next';
   nextBtn.textContent = 'Next';
-  nextBtn.onclick = null;
   inputRowEl.before(nextBtn);
-  console.log('[RUG] Next button inserted before inputRow.');
+
+  // Scratch pad (final page only)
+  const scratchWrap = document.createElement('div');
+  Object.assign(scratchWrap.style, { display:'none', marginTop:'8px', textAlign:'left' });
+  const scratchLabel = document.createElement('div');
+  scratchLabel.textContent = 'Scratch pad';
+  Object.assign(scratchLabel.style,{ fontSize:'clamp(14px,3vw,16px)',margin:'0 0 6px',opacity:0.9,fontWeight:'500'});
+  const scratchPad = document.createElement('textarea');
+  scratchPad.id = 'rug-scratch';
+  scratchPad.placeholder = 'Write your letter sums and +/-/× steps here…';
+  scratchPad.rows = 6;
+  Object.assign(scratchPad.style,{
+    width:'100%',boxSizing:'border-box',
+    fontFamily:"'NotoSansUCAS', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
+    fontSize:'clamp(14px,3vw,16px)',lineHeight:'1.35',
+    padding:'10px 12px',background:'#F5E6C8',color:'#000',
+    border:'1px solid rgba(0,0,0,.25)',borderRadius:'8px',
+    outline:'none',resize:'vertical',
+    minHeight:'96px',maxHeight:'35vh',
+    whiteSpace:'pre-wrap',overflowY:'auto'
+  });
+  const scratchBtns = document.createElement('div');
+  Object.assign(scratchBtns.style,{display:'flex',gap:'8px',marginTop:'6px'});
+  function mkBtn(txt){
+    const b=document.createElement('button');b.textContent=txt;
+    Object.assign(b.style,{fontSize:'clamp(14px,3vw,16px)',padding:'8px 12px',
+      borderRadius:'8px',border:'1px solid rgba(0,0,0,.25)',
+      background:'#000',color:'#fff',cursor:'pointer',
+      fontFamily:"'NotoSansUCAS', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",fontWeight:'500'});
+    return b;
+  }
+  const btnClear=mkBtn('Clear');const btnCopy=mkBtn('Copy');
+  scratchBtns.appendChild(btnClear);scratchBtns.appendChild(btnCopy);
+  scratchWrap.appendChild(scratchLabel);scratchWrap.appendChild(scratchPad);scratchWrap.appendChild(scratchBtns);
+  inputRowEl.parentElement.insertBefore(scratchWrap,inputRowEl);
+
+  const SCRATCH_KEY='rugScratchV1';
+  try{const saved=localStorage.getItem(SCRATCH_KEY);if(saved!=null)scratchPad.value=saved;}catch{}
+  scratchPad.addEventListener('input',()=>{try{localStorage.setItem(SCRATCH_KEY,scratchPad.value);}catch{}});
+  btnClear.onclick=()=>{scratchPad.value='';scratchPad.dispatchEvent(new Event('input'));scratchPad.focus();};
+  btnCopy.onclick=async()=>{try{await navigator.clipboard.writeText(scratchPad.value);
+    feedbackEl.textContent='Scratch copied to clipboard.';feedbackEl.style.color='#0a0';
+  }catch{feedbackEl.textContent='Copy failed. Select and Ctrl/Cmd+C.';feedbackEl.style.color='#a00';}};
 
   // Paging
-  const pages = [page1, page2, page3, page4];
-  let pageIdx = 0;
-
-  function renderPage() {
-    console.log('[RUG] renderPage()', { pageIdx });
-    promptEl.innerHTML = pages[pageIdx];
-    feedbackEl.textContent = '';
-    feedbackEl.style.color = '#000';
-
-    if (pageIdx < pages.length - 1) {
-      // pages 1–3
-      nextBtn.style.display = 'inline-block';
-      inputRowEl.style.display = 'none';
-    } else {
-      // page 4
-      nextBtn.style.display = 'none';
-      inputRowEl.style.display = 'grid';
-      if (inputEl) { inputEl.value = ''; inputEl.focus(); }
+  const pages=[page1,page2,page3,page4];let pageIdx=0;
+  function renderPage(){
+    promptEl.innerHTML=pages[pageIdx];feedbackEl.textContent='';feedbackEl.style.color='#000';
+    if(pageIdx<pages.length-1){
+      nextBtn.style.display='inline-block';inputRowEl.style.display='none';scratchWrap.style.display='none';
+    }else{
+      nextBtn.style.display='none';scratchWrap.style.display='block';inputRowEl.style.display='grid';
+      if(inputEl){inputEl.value='';inputEl.focus();}
     }
   }
-
-  nextBtn.onclick = () => {
-    pageIdx++;
-    console.debug('[RUG] Next clicked. New pageIdx=', pageIdx);
-    renderPage();
+  nextBtn.onclick=()=>{pageIdx++;console.debug('[RUG] Next clicked pageIdx=',pageIdx);renderPage();};
+  const origSubmit=submitBtn.onclick;
+  submitBtn.onclick=(e)=>{const v=(inputEl?.value||'').trim();
+    console.debug('[RUG] Submit value=',v,'ready=',ready);
+    if(typeof origSubmit==='function')origSubmit(e);
   };
-
-  // Intercept submit to add logs (base correctness still handled by openOverlay)
-  const originalSubmit = submitBtn.onclick;
-  submitBtn.onclick = (e) => {
-    const v = (inputEl?.value || '').trim();
-    console.debug('[RUG] Submit clicked. value(raw)=', v, 'value(UC)=', v.toUpperCase(), { ready });
-    if (typeof originalSubmit === 'function') originalSubmit(e);
-  };
-
   renderPage();
 }
+
 
 
   // ---------- expose ----------
