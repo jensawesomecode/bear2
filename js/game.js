@@ -1,10 +1,10 @@
-// ===== game.js (fit layout + glow + hover) =====
+// ===== game.js (CSS-sized canvas, glow + hover, full file) =====
 
 const canvas = document.getElementById('scene');
 const ctx = canvas.getContext('2d', { alpha: false });
 const ui = document.getElementById('ui');
 
-// Logical design resolution
+// Logical design resolution (matches <canvas width/height> in HTML)
 const BASE_W = 1280;
 const BASE_H = 720;
 
@@ -57,39 +57,7 @@ async function init() {
   canvas.addEventListener('pointerleave', () => { _hoverId = null; canvas.style.cursor = 'default'; });
   canvas.addEventListener('pointerdown', onPointerDown);
 
-  // fit the canvas to viewport (letterbox)
-  layoutCanvasFit();
-  window.addEventListener('resize', layoutCanvasFit);
-  window.addEventListener('orientationchange', layoutCanvasFit);
-
   requestAnimationFrame(draw);
-}
-
-// ===== FIT layout (no cropping; shows whole 1280×720) =====
-function layoutCanvasFit() {
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
-
-  // scale so the entire base fits within viewport
-  const scale = Math.min(vw / BASE_W, vh / BASE_H);
-
-  // CSS display size
-  const cssW = Math.floor(BASE_W * scale);
-  const cssH = Math.floor(BASE_H * scale);
-  canvas.style.width  = cssW + 'px';
-  canvas.style.height = cssH + 'px';
-
-  // Backing pixel size for HiDPI
-  const dpr = window.devicePixelRatio || 1;
-  const bw = Math.round(cssW * dpr);
-  const bh = Math.round(cssH * dpr);
-  if (canvas.width !== bw || canvas.height !== bh) {
-    canvas.width = bw;
-    canvas.height = bh;
-  }
-
-  // Map 1280×720 logical coords to scaled canvas
-  ctx.setTransform(scale * dpr, 0, 0, scale * dpr, 0, 0);
 }
 
 // ===== render =====
@@ -99,7 +67,7 @@ function draw() {
   const bgImg = IMGS[bg.id];
   if (bgImg) ctx.drawImage(bgImg, bg.x, bg.y, bg.w, bg.h);
 
-  // foreground with glow
+  // foreground with glow (hover = cream)
   for (let i = 1; i < OBJECTS.length; i++) {
     const o = OBJECTS[i];
     const img = IMGS[o.id];
@@ -141,7 +109,7 @@ function drawObjectWithGlow(img, x, y, w, h, glowColor) {
 function onPointerMove(e) {
   const { x, y } = getPointerPosInBase(e);
   let hitId = null;
-  for (let i = OBJECTS.length - 1; i >= 1; i--) {
+  for (let i = OBJECTS.length - 1; i >= 1; i--) { // topmost first
     const o = OBJECTS[i];
     if (!o.clickable) continue;
     if (pointInRect(x, y, o)) { hitId = o.id; break; }
@@ -162,10 +130,11 @@ function onPointerDown(e) {
 // Convert pointer from CSS pixels to base 1280×720 coords
 function getPointerPosInBase(e) {
   const rect = canvas.getBoundingClientRect();
-  const scale = rect.width / BASE_W; // because cssWidth = BASE_W * scale
+  const scaleX = rect.width  / BASE_W;
+  const scaleY = rect.height / BASE_H;
   return {
-    x: (e.clientX - rect.left) / scale,
-    y: (e.clientY - rect.top)  / scale,
+    x: (e.clientX - rect.left) / scaleX,
+    y: (e.clientY - rect.top)  / scaleY,
   };
 }
 
@@ -193,11 +162,10 @@ const UI = {
   }
 };
 
-// ===== puzzle stubs =====
-window.Puzzles = {
-  rug2()   { UI.say('Rug puzzle (stub)'); },
-  plant2() { UI.say('Plant puzzle (stub)'); },
-  chair2() { UI.say('Chair puzzle (stub)'); },
-  desk2()  { UI.say('Desk puzzle (stub)'); },
-  couch2() { UI.say('Couch puzzle (stub)'); },
-};
+// Preserve existing Puzzles if defined by puzzle.js; otherwise add stubs
+window.Puzzles = window.Puzzles || {};
+if (!('rug2'   in window.Puzzles)) window.Puzzles.rug2   = () => UI.say('Rug puzzle (stub)');
+if (!('plant2' in window.Puzzles)) window.Puzzles.plant2 = () => UI.say('Plant puzzle (stub)');
+if (!('chair2' in window.Puzzles)) window.Puzzles.chair2 = () => UI.say('Chair puzzle (stub)');
+if (!('desk2'  in window.Puzzles)) window.Puzzles.desk2  = () => UI.say('Desk puzzle (stub)');
+if (!('couch2' in window.Puzzles)) window.Puzzles.couch2 = () => UI.say('Couch puzzle (stub)');

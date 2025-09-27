@@ -127,4 +127,8 @@ html, body { margin: 0; height: 100%; background: #000; }
 #scene {
   display: block;
   background: #000;
+    width: min(1280px, 95vw);
+  height: calc((720 / 1280) * min(1280px, 95vw));
+  display: block;
+  background: #000;
 }
