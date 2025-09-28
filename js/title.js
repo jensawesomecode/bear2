@@ -20,9 +20,9 @@
     document.head.appendChild(style);
   })();
 
-  // timings (mirrors story.js vibe)
-  const DISPLAY_MS = 2500;   // normal screen hold time
-  const SUBTITLE_EXTRA = 500; // extra time for the last line
+  // timings
+  const DISPLAY_MS = 2500;     // common hold for lines 1 & 3
+  const TITLE_EXTRA_MS = 1000; // extra hold time for line 2 (title)
   const FADE_IN_MS = 600;
   const FADE_OUT_MS = 500;
 
@@ -91,18 +91,15 @@
     for (let i = 0; i < SCREENS.length; i++) {
       lineEl.innerHTML = SCREENS[i];
 
-      // fade in
+      // fade in (reuse story.css classes)
       lineEl.classList.remove('story-exit');
-      void lineEl.offsetWidth;
+      void lineEl.offsetWidth; // reflow
       lineEl.classList.add('story-enter');
       await wait(FADE_IN_MS);
 
-      // hold (last line holds longer)
-      if (i === SCREENS.length - 1) {
-        await wait(DISPLAY_MS + SUBTITLE_EXTRA);
-      } else {
-        await wait(DISPLAY_MS);
-      }
+      // hold: line 2 gets extra time, lines 1 & 3 use common display time
+      const extra = (i === 1) ? TITLE_EXTRA_MS : 0;
+      await wait(DISPLAY_MS + extra);
 
       // fade out
       lineEl.classList.remove('story-enter');
@@ -112,20 +109,53 @@
     }
   }
 
-  async function runSequence() {
+    async function runSequence() {
     try {
       await playScreens();
     } catch (e) {
       console.warn('[title.js] playScreens error:', e);
     }
 
-    // Fade out the whole title overlay with your existing CSS
+    // Fade out the title overlay…
     title.classList.add('hide');
-    await wait(500); // match fadeOut duration
+    await wait(500);
     title.remove();
 
-    // Handoff
+    // Helper: wait two paints
+    function nextPaint() {
+      return new Promise((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(resolve))
+      );
+    }
+
+    // 1) Put a black cover over the scene immediately (so nothing flashes)
+    try {
+      if (window.SpecialFX && typeof window.SpecialFX.coverBlackNow === 'function') {
+        window.SpecialFX.coverBlackNow();
+      }
+    } catch (e) {
+      console.warn('[title.js] coverBlackNow error:', e);
+    }
+
+    // Hold black for 2 frames
+    await nextPaint();
+    await nextPaint();
+
+    // 2) Start the game so #scene actually draws under the black
     callGameStartSafely();
+
+    // Let the scene render for 2 frames while still covered
+    await nextPaint();
+    await nextPaint();
+
+    // 3) Now run the fade-only prologue on top of the already-drawn room
+    try {
+      if (window.SpecialFX && typeof window.SpecialFX.prologueSequence === 'function') {
+        await window.SpecialFX.prologueSequence();
+      }
+    } catch (e) {
+      console.warn('[title.js] prologueSequence error:', e);
+    }
   }
 
   function startWhenStoryDone() {

@@ -1,11 +1,9 @@
 /* ===== story.css ===== */
 
-/* Load your story font */
+/* Use the same font as the title */
 @font-face {
-  font-family: 'Blumenbuch';
-  src: url('../fonts/BlumenbuchBeta-OO7P.ttf') format('truetype');
-  font-weight: 400;
-  font-style: normal;
+  font-family: 'OrangeFogue';
+  src: url('../fonts/OrangeFogueDemoRegular-gwj7Y.ttf') format('truetype');
   font-display: swap;
 }
 
@@ -31,13 +29,12 @@
 
 /* Story line styling (cream on black) */
 #story-screen .story-line {
-  font-family: 'Blumenbuch', system-ui, sans-serif;
+  font-family: 'OrangeFogue', system-ui, sans-serif;
   color: #F5E6C8;               /* cream */
   letter-spacing: 0.03em;
   line-height: 1.25;
   margin: 0 auto;
   width: 90%;
-  /* responsive size; tweak middle value to taste */
   font-size: clamp(22px, 3.2vw, 48px);
 
   opacity: 0;                   /* driven by animations below */
