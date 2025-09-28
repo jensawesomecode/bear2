@@ -74,8 +74,10 @@ async function init() {
 
   // install scratch pad & wrap puzzles
   ScratchPad.install();
-  
   ScratchPad.patchPuzzles();
+
+  // install restart button (top-right, below ✎)
+  installRestartButton();
 }
 
 // ---------- render ----------
@@ -253,6 +255,39 @@ function resizeCanvasToDisplaySize() {
   }
 }
 
+/* ---------- Restart button (top-right) ---------- */
+function installRestartButton() {
+  if (document.getElementById('restart-btn')) return;
+  const btn = document.createElement('button');
+  btn.id = 'restart-btn';
+  btn.type = 'button';
+  btn.ariaLabel = 'Restart';
+  btn.textContent = 'Restart';
+  Object.assign(btn.style, {
+    position: 'fixed',
+    top: '60px',              // just below the ✎ toggle
+    right: '16px',
+    zIndex: '3100',
+    padding: '8px 12px',
+    borderRadius: '10px',
+    border: '1px solid #5C4033',
+    background: '#5C4033',    // Bear Brown
+    color: '#F5E6C8',         // Cream
+    fontFamily: "'OrangeFogue', system-ui, sans-serif",
+    fontSize: '14px',
+    letterSpacing: '0.02em',
+    cursor: 'pointer',
+    boxShadow: '0 6px 18px rgba(0,0,0,0.35)'
+  });
+  btn.addEventListener('mouseenter', () => { btn.style.filter = 'brightness(1.08)'; });
+  btn.addEventListener('mouseleave', () => { btn.style.filter = 'none'; });
+  btn.addEventListener('click', () => {
+    try { localStorage.setItem('scratchpad:open:v1','0'); } catch {}
+    try { window.location.reload(); } catch (e) { window.location.href = window.location.href; }
+  });
+  document.body.appendChild(btn);
+}
+
 /* =======================================================================
    SCRATCH PAD (for all puzzles)
    ======================================================================= */
@@ -335,7 +370,7 @@ const ScratchPad = (() => {
       flex: '1 1 auto',
       resize: 'none',
       background: 'transparent',
-      color: '#F5E6C8',
+      color: '#000',
       border: 'none',
       outline: 'none',
       font: '13px/1.35 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
@@ -355,7 +390,7 @@ const ScratchPad = (() => {
       right: '0',
       bottom: '0',
       cursor: 'nwse-resize',
-      background: 'linear-gradient(135deg, transparent 50%, rgba(245,230,200,.5) 50%)'
+      background: 'linear-gradient(135deg, transparent 50%, rgba(92,64,51,.5) 50%)'
     });
 
     // --- toggle chip (always visible) ---
@@ -380,10 +415,9 @@ const ScratchPad = (() => {
     root.append(header, ta, btnResize);
     document.body.append(root, btnToggle);
 
- // always start hidden on game load; still remember minimized state
-hide();
-if (localStorage.getItem(LS_KEY_MIN) === '1') minimize(true);
-
+    // always start hidden on game load; still remember minimized state
+    hide();
+    if (localStorage.getItem(LS_KEY_MIN) === '1') minimize(true);
 
     // drag
     header.addEventListener('pointerdown', (e) => {
@@ -439,8 +473,8 @@ if (localStorage.getItem(LS_KEY_MIN) === '1') minimize(true);
       padding: '6px 8px',
       borderRadius: '6px',
       border: '1px solid #5C4033',
-      background: 'rgba(0,0,0,0.65)',
-      color: '#F5E6C8',
+      background: 'rgba(0,0,0,0.05)',
+      color: '#5C4033',
       cursor: 'pointer'
     });
     return b;

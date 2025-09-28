@@ -398,18 +398,20 @@ Dashes optional (e.g., <code>AA-BB-CC</code> or <code>AABBCC</code>).
 ${ready ? 'When your circle is complete, the rug will yield.' : '<i>Finish Chair, Plant, and Desk to complete the circle.</i>'}
 `;
 
-  // Build overlay
-  openOverlay({
-    titleText: 'Rug Puzzle — ᒪᐢᑿ’s Circle',
-    promptHTML: page1,
-    hintHTML: `Inside: add digits of each letter’s A1Z26 value. Outside: cycle +, ×, − in order.`,
-    correct: [targetDash.toUpperCase(), targetRaw.toUpperCase()],
-    onSolved: () => {
-      console.log('[RUG] onSolved() fired.');
-      window.GameState.solved['rug2'] = true;
-      try { window.UI?.say?.('Rug unlocked'); } catch {}
-    }
-  });
+// Build overlay
+openOverlay({
+  titleText: 'Rug Puzzle — ᒪᐢᑿ’s Circle',
+  promptHTML: page1,
+  hintHTML: `Inside: add digits of each letter’s A1Z26 value. Outside: cycle +, ×, − in order.`,
+  correct: [targetDash.toUpperCase(), targetRaw.toUpperCase()],
+  onSolved: () => {
+    console.log('[RUG] onSolved() fired.');
+    window.GameState.solved['rug2'] = true;
+    try { window.UI?.say?.('Rug unlocked'); } catch {}
+    window.dispatchEvent(new CustomEvent('game:win'));
+  }
+});
+
 
   // Grab nodes
   const overlayEl = document.getElementById('puzzle-overlay');

@@ -1,16 +1,14 @@
 // ===== wall.js =====
 // - Waits for 'blink:done' (fallback: 'fx:done') or window.__blinkCompleted.
-// - After that, shows 35 lines (array order) and plays audio 1.mp3..35.mp3
-//   across exactly 7 minutes. Initial silence equals the between-clip gap.
-// - Text matches story size/spacing; color/outline matches title.
-// - Text wraps at 650px, positioned 30px below #scene top, centered.
-// - Loops fire.mp3 quietly under narration (if present) and ducks it by 50% during clips.
-// - Console logs only (no on-screen debug).
+// - Shows 35 lines with matching numbered audio over exactly 7 minutes.
+// - Text matches story size; color/outline matches title; wraps 650px, 30px below #scene.
+// - Loops fire.mp3 under narration; ducks during clips.
+// - On 'game:win', immediately STOP: hide text, stop/disable audio, detach listeners.
 
 (function () {
   'use strict';
 
-  // ----- Lines in order (index 0→1.mp3 ... 34→35.mp3) -----
+  // ----- Lines (index 0→1.mp3 ... 34→35.mp3) -----
   const WALL_LINES = [
     "How’d I get here?",
     "I’m so cozy.",
@@ -48,8 +46,6 @@
     "Don’t mind the buzzing. The bees are in my teeth again.",
     "The window isn’t password protected. It’s just… watching."
   ];
-
-  // Audio mapping 1..35
   const SEQ = Array.from({ length: WALL_LINES.length }, (_, i) => i + 1);
 
   // Durations (ms)
@@ -60,21 +56,33 @@
   // Schedule target
   const TOTAL_MS = 7 * 60 * 1000; // 7 minutes
 
-  // Visual timings (inline transitions)
+  // Visual timings
   const FADE_IN_MS  = 600;
   const FADE_OUT_MS = 500;
 
   // Fire loop
   const FIRE_SRC = 'sound/fire.mp3';
-  const FIRE_VOL_BASE = 1.0;
-  const FIRE_VOL_DUCK = 0.5; // 50% during numbered clips
 
-  // Layering
   const Z_UNDER_PUZZLES = 1400;
 
   // Helpers
   const log = (...a) => console.log('[wall]', ...a);
-  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  // cancellable sleeper
+  function makeSleeper() {
+    const timers = new Set();
+    return {
+      wait(ms) {
+        return new Promise((resolve) => {
+          const t = setTimeout(() => { timers.delete(t); resolve(); }, ms);
+          timers.add(t);
+        });
+      },
+      cancelAll() { timers.forEach(t => clearTimeout(t)); timers.clear(); }
+    };
+  }
+  const sleep = makeSleeper();
+
   function mkAudio(src, { loop = false, vol = 1.0 } = {}) {
     const el = new Audio();
     el.src = src;
@@ -86,7 +94,7 @@
     return el;
   }
 
-  // Build host AFTER blink so we never overlap title
+  // Host (position 30px below scene top)
   let host, line, positionHostBound;
   function buildHost() {
     host = document.createElement('div');
@@ -104,26 +112,25 @@
 
     line = document.createElement('div');
     Object.assign(line.style, {
-      fontFamily: "'OrangeFogue', system-ui, sans-serif", // story font
+      fontFamily: "'OrangeFogue', system-ui, sans-serif",
       letterSpacing: '0.03em',
       lineHeight: '1.25',
-      fontSize: 'clamp(22px, 3.2vw, 48px)',               // story size
+      fontSize: 'clamp(22px, 3.2vw, 48px)',
       margin: '0 auto',
-      color: '#5C4033',                                   // title color
+      color: '#5C4033',
       whiteSpace: 'normal',
       wordBreak: 'break-word',
       hyphens: 'auto',
-      // outline (title-like)
-      textShadow:
-        '-2px 0 rgba(0,0,0,.5), 2px 0 rgba(0,0,0,.5), 0 -2px rgba(0,0,0,.5), 0 2px rgba(0,0,0,.5),' +
-        '-2px -2px rgba(0,0,0,.5), 2px -2px rgba(0,0,0,.5), -2px 2px rgba(0,0,0,.5), 2px 2px rgba(0,0,0,.5)',
       opacity: '0',
       transform: 'translateY(6px)',
       transition: `opacity ${FADE_IN_MS}ms ease-out, transform ${FADE_IN_MS}ms ease-out`
     });
     if ('webkitTextStroke' in line.style) {
       line.style.webkitTextStroke = '2px rgba(0,0,0,.5)';
-      line.style.textShadow = 'none';
+    } else {
+      line.style.textShadow =
+        '-2px 0 rgba(0,0,0,.5), 2px 0 rgba(0,0,0,.5), 0 -2px rgba(0,0,0,.5), 0 2px rgba(0,0,0,.5),' +
+        '-2px -2px rgba(0,0,0,.5), 2px -2px rgba(0,0,0,.5), -2px 2px rgba(0,0,0,.5), 2px 2px rgba(0,0,0,.5)';
     }
 
     host.appendChild(line);
@@ -136,7 +143,7 @@
         host.style.top = `${Math.round(r.top + 30)}px`;
         host.style.left = `${Math.round(r.left + r.width / 2)}px`;
       } else {
-        host.style.top = `30px`; // fallback
+        host.style.top = `30px`;
         host.style.left = `50%`;
       }
     };
@@ -148,29 +155,29 @@
 
   function fadeIn(el) {
     el.style.transition = `opacity ${FADE_IN_MS}ms ease-out, transform ${FADE_IN_MS}ms ease-out`;
-    // eslint-disable-next-line no-unused-expressions
-    el.offsetWidth;
+    void el.offsetWidth;
     el.style.opacity = '1';
     el.style.transform = 'translateY(0)';
   }
   function fadeOut(el) {
     el.style.transition = `opacity ${FADE_OUT_MS}ms ease-in, transform ${FADE_OUT_MS}ms ease-in`;
-    // eslint-disable-next-line no-unused-expressions
-    el.offsetWidth;
+    void el.offsetWidth;
     el.style.opacity = '0';
     el.style.transform = 'translateY(-6px)';
   }
 
-  // Main
+  // State
   let armed = false;
+  let stopped = false;
   let fireEl = null;
+  let currentClipEl = null;
   const clips = []; // { n, el, dur }
 
   function preload() {
     for (const n of SEQ) {
       clips.push({ n, el: mkAudio(`sound/${n}.mp3`), dur: durFor(n) });
     }
-    fireEl = mkAudio(FIRE_SRC, { loop: true, vol: FIRE_VOL_BASE });
+    fireEl = mkAudio(FIRE_SRC, { loop: true, vol: 1.0 });
   }
 
   async function ensureFire() {
@@ -180,78 +187,94 @@
       if (p && typeof p.then === 'function') await p;
       log('fire loop playing');
     } catch (e) {
-      log('fire loop play failed (ok to ignore):', e?.name || e);
+      log('fire loop play failed (ok):', e?.name || e);
       fireEl = null;
     }
   }
-  const duck = (down) => { if (fireEl) try { fireEl.volume = down ? FIRE_VOL_DUCK : FIRE_VOL_BASE; } catch {} };
+
+  function duck(down) {
+    if (!fireEl) return;
+    try { fireEl.volume = down ? 0.5 : 1.0; } catch {}
+  }
+
+  function stopWall() {
+    if (stopped) return;
+    stopped = true;
+    try { sleep.cancelAll(); } catch {}
+    try { if (currentClipEl) { currentClipEl.pause(); currentClipEl.currentTime = 0; } } catch {}
+    try { if (fireEl) { fireEl.pause(); fireEl.currentTime = 0; } } catch {}
+    try {
+      window.removeEventListener('resize', positionHostBound);
+      window.removeEventListener('scroll', positionHostBound);
+    } catch {}
+    try { if (host) host.remove(); } catch {}
+    log('stopped on game:win');
+  }
 
   async function runWall() {
     if (armed) return; armed = true;
+    stopped = false;
 
     buildHost();
     preload();
 
-    // schedule math
     const N = clips.length;
     const sumDur = clips.reduce((a, c) => a + c.dur, 0);
     const totalGap = Math.max(0, TOTAL_MS - sumDur);
     const gapBase = Math.floor(totalGap / N);
-    const gapExtraCount = totalGap % N; // first gapExtraCount gaps get +1ms
-    log('schedule:', { N, sumDur, totalGap, gapBase, gapExtraCount });
+    const gapExtraCount = totalGap % N;
 
     await ensureFire();
 
     // initial silence
+    if (stopped) return;
     const firstGap = gapBase + (0 < gapExtraCount ? 1 : 0);
-    log('initial gap ms =', firstGap);
-    await wait(firstGap);
+    await sleep.wait(firstGap);
+    if (stopped) return;
 
-    for (let i = 0; i < N; i++) {
+    for (let i = 0; i < N && !stopped; i++) {
       const c = clips[i];
       const txt = WALL_LINES[i] || '';
 
       // show text
       line.textContent = txt;
       fadeIn(line);
-      await wait(FADE_IN_MS);
+      await sleep.wait(FADE_IN_MS);
+      if (stopped) break;
 
       // play clip
       try {
-        c.el.currentTime = 0;
-        const p = c.el.play();
+        currentClipEl = c.el;
+        currentClipEl.currentTime = 0;
+        const p = currentClipEl.play();
         if (p && typeof p.then === 'function') await p;
-        log(`clip ${c.n} started (dur ${c.dur}ms)`);
-      } catch (e) {
-        log(`clip ${c.n} play failed:`, e?.name || e);
-      }
-
-      // duck fire during clip
+      } catch {}
       duck(true);
-      await wait(c.dur);
+      await sleep.wait(c.dur);
       duck(false);
+      if (stopped) break;
 
       // fade out text
       fadeOut(line);
-      await wait(FADE_OUT_MS);
+      await sleep.wait(FADE_OUT_MS);
+      if (stopped) break;
 
       // gap before next (no trailing)
       if (i < N - 1) {
         const extra = (i + 1) < gapExtraCount ? 1 : 0;
         const gap = gapBase + extra;
-        log(`gap after ${c.n} = ${gap}ms`);
-        await wait(gap);
+        await sleep.wait(gap);
+        if (stopped) break;
       }
     }
 
-    log('wall: complete (7 min schedule done)');
-    window.dispatchEvent(new CustomEvent('wall:done'));
+    if (!stopped) log('wall: complete (7 min schedule done)');
+    if (!stopped) window.dispatchEvent(new CustomEvent('wall:done'));
   }
 
-  // Arm strictly on blink completion. Fallback to fx:done for older builds.
+  // Arm strictly on blink completion. Fallback to fx:done.
   function arm() {
     if (window.__blinkCompleted) {
-      log('detected __blinkCompleted → start now');
       runWall();
       return;
     }
@@ -260,10 +283,8 @@
     window.addEventListener('blink:done', onBlink, { once: true });
     window.addEventListener('fx:done', onFx, { once: true });
 
-    // sanity watchdog in case events never fire (will still do nothing visible)
-    setTimeout(() => {
-      if (!armed && window.__blinkCompleted) runWall();
-    }, 30000);
+    // On win: STOP immediately
+    window.addEventListener('game:win', stopWall, { once: true });
   }
 
   if (document.readyState === 'loading') {
